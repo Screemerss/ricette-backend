@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
+from pydantic import BaseModel
 import requests, os, json, time
 from dotenv import load_dotenv
 
@@ -19,6 +20,11 @@ USER_LIMIT_PER_DAY = 3
 cache = {}
 user_requests = {}
 
+# ✅ Modello Pydantic per Swagger
+class RecipeRequest(BaseModel):
+    prompt: str
+    user_id: str = "anon"
+
 def load_cache():
     if os.path.exists(CACHE_FILE):
         try:
@@ -38,10 +44,9 @@ def save_cache():
 cache = load_cache()
 
 @app.post("/generate")
-async def generate_recipe(request: Request):
-    data = await request.json()
-    prompt = data.get("prompt")
-    user_id = data.get("user_id", "anon")
+async def generate_recipe(data: RecipeRequest):
+    prompt = data.prompt
+    user_id = data.user_id
 
     # Rate limit
     now = time.time()
@@ -90,3 +95,8 @@ async def generate_recipe(request: Request):
     save_cache()
 
     return {"cached": False, "recipe": recipe_text}
+
+# ✅ Endpoint di test per verificare che il server sia online
+@app.get("/status")
+def status():
+    return {"status": "Server online e pronto!"}
